@@ -30,6 +30,7 @@ CHAIN_DNS_PRE=CMFA_DNS_PRE
 
 BYPASS_V4="0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16 224.0.0.0/4 240.0.0.0/4 255.255.255.255/32 $CMFA_EXTRA_BYPASS_V4"
 BYPASS_V6="::/128 ::1/128 fc00::/7 fe80::/10 ff00::/8 $CMFA_EXTRA_BYPASS_V6"
+LAST_MARKER_STATE=unknown
 
 log() {
   msg="[cmfa-root] $*"
@@ -129,6 +130,11 @@ ensure_marker() {
 remove_marker() {
   dir=$(data_dir)
   [ -n "$dir" ] && rm -f "$dir/files/clash/$MARKER_FILE"
+}
+
+marker_exists() {
+  dir=$(data_dir)
+  [ -n "$dir" ] && [ -f "$dir/files/clash/$MARKER_FILE" ]
 }
 
 grant_notification() {
@@ -440,7 +446,8 @@ apply_rules() {
 }
 
 rules_active() {
-  iptables -t mangle -S "$CHAIN_PRE" >/dev/null 2>&1
+  iptables -t nat -S "$CHAIN_OUT" >/dev/null 2>&1 \
+    || iptables -t mangle -S "$CHAIN_PRE" >/dev/null 2>&1
 }
 
 start_proxy() {
@@ -461,6 +468,35 @@ stop_proxy() {
   stop_app_service
   remove_marker
   log "stopped"
+}
+
+sync_rules_once() {
+  wait_package || return 1
+  wait_data_dir_uid || return 1
+
+  if marker_exists; then
+    if [ "$LAST_MARKER_STATE" != "enabled" ] || ! rules_active; then
+      if wait_listeners; then
+        apply_rules
+      fi
+    fi
+    LAST_MARKER_STATE=enabled
+  else
+    if [ "$LAST_MARKER_STATE" != "disabled" ] || rules_active; then
+      cleanup_rules
+    fi
+    LAST_MARKER_STATE=disabled
+  fi
+}
+
+monitor_proxy() {
+  wait_boot
+  start_proxy || true
+
+  while :; do
+    sync_rules_once || true
+    sleep 2
+  done
 }
 
 case "$1" in
@@ -484,8 +520,11 @@ case "$1" in
   cleanup)
     cleanup_rules
     ;;
+  monitor)
+    monitor_proxy
+    ;;
   *)
-    echo "usage: $0 {start|stop|restart|toggle|cleanup}"
+    echo "usage: $0 {start|stop|restart|toggle|cleanup|monitor}"
     exit 2
     ;;
 esac

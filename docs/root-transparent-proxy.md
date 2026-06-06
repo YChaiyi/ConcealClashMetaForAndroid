@@ -12,6 +12,8 @@ This fork adds a root-only launch path for Conceal CMFA, the short app name for 
 - The module starts `RootProxyService`, waits for either the TPROXY or REDIR listener, then applies owner-safe iptables/ip6tables rules.
 - The module uses TPROXY when possible and falls back to REDIR TCP/DNS mode when only `redir-port` is available.
 - The module skips the Conceal CMFA app UID to avoid proxy loops.
+- The app's normal start button, external-control intents, launcher shortcuts, QS tile, and boot receiver start `RootProxyService` directly instead of requesting Android `VpnService`.
+- The module runs a lightweight monitor that mirrors the root marker to iptables state, so App-side stop/start also removes and reapplies transparent proxy rules.
 
 ## Build
 

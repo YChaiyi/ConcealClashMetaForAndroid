@@ -27,4 +27,8 @@ The APK asset is the tested arm64 debug build from this development run. A forma
 - `:app:assembleMetaDebug` succeeded.
 - Module shell syntax and zip integrity checks passed.
 - Static scan confirms app-side start calls `RootProxyService` and no longer calls `VpnService.prepare()`.
-- Device retest is pending because the Xiaomi 17 Pro is not currently visible in `adb devices`.
+- Xiaomi 17 Pro real-device retest passed with SukiSU Ultra:
+  - Installed the APK and updated the module through the SukiSU Ultra module UI.
+  - Rebooted, confirmed `Conceal CMFA Root Proxy` module `0.1.1` was active.
+  - App stop removed the root marker, listeners, and `CMFA_*` iptables rules.
+  - App start showed no Android VPN permission dialog, launched `RootProxyService`, recreated the root marker, and reapplied transparent proxy rules.

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/dlclark/regexp2"
@@ -22,6 +23,7 @@ var processors = []processor{
 	patchGeneral,
 	patchProfile,
 	patchDns,
+	patchRootProxy,
 	patchTun,
 	patchListeners,
 	patchProviders,
@@ -80,6 +82,44 @@ func patchDns(cfg *config.RawConfig, _ string) error {
 	if cfg.ClashForAndroid.AppendSystemDNS {
 		cfg.DNS.NameServer = append(cfg.DNS.NameServer, "system://")
 	}
+
+	return nil
+}
+
+const (
+	rootProxyMarkerFile  = "root-transparent-proxy.enabled"
+	rootProxyRedirPort   = 7892
+	rootProxyTProxyPort  = 7893
+	rootProxyDNSListen   = "[::]:1053"
+	rootProxyRoutingMark = 2158
+)
+
+func rootProxyEnabled() bool {
+	_, err := os.Stat(C.Path.Resolve(rootProxyMarkerFile))
+	return err == nil
+}
+
+func patchRootProxy(cfg *config.RawConfig, _ string) error {
+	if !rootProxyEnabled() {
+		return nil
+	}
+
+	cfg.Port = 0
+	cfg.SocksPort = 0
+	cfg.MixedPort = 0
+	cfg.RedirPort = rootProxyRedirPort
+	cfg.TProxyPort = rootProxyTProxyPort
+	cfg.AllowLan = true
+	cfg.BindAddress = "*"
+	cfg.RoutingMark = rootProxyRoutingMark
+
+	cfg.DNS.Enable = true
+	cfg.DNS.Listen = rootProxyDNSListen
+
+	cfg.IPTables.Enable = false
+	cfg.Tun.Enable = false
+	cfg.Tun.AutoRoute = false
+	cfg.Tun.AutoDetectInterface = false
 
 	return nil
 }

@@ -1,0 +1,6 @@
+id=cmfa-root-transparent-proxy
+name=Conceal CMFA Root Proxy
+version=0.1.0
+versionCode=1
+author=YChaiyi
+description=Starts Conceal CMFA (Conceal Clash Meta For Android) in root transparent proxy mode and applies owner-safe TProxy/REDIR rules for SukiSU Ultra/Magisk.

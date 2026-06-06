@@ -55,6 +55,7 @@
         <activity-alias
             android:name=".MainActivityAlias"
             android:exported="true"
+            android:label="@string/launch_name"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -82,15 +83,15 @@
                 <data android:host="install-config"/>
             </intent-filter>
             <intent-filter>
-                <action android:name="com.github.metacubex.clash.meta.action.START_CLASH" />
+                <action android:name="com.github.ychaiyi.conceal.clash.meta.for.android.action.START_CLASH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="com.github.metacubex.clash.meta.action.STOP_CLASH" />
+                <action android:name="com.github.ychaiyi.conceal.clash.meta.for.android.action.STOP_CLASH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="com.github.metacubex.clash.meta.action.TOGGLE_CLASH" />
+                <action android:name="com.github.ychaiyi.conceal.clash.meta.for.android.action.TOGGLE_CLASH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

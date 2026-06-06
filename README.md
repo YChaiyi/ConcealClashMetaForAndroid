@@ -1,87 +1,85 @@
-## Clash Meta for Android
+# Conceal Clash Meta For Android
 
-A Graphical user interface of [Clash.Meta](https://github.com/MetaCubeX/Clash.Meta) for Android
+Conceal CMFA is a root-first, silent transparent proxy fork of [Clash Meta for Android](https://github.com/MetaCubeX/ClashMetaForAndroid).
+It keeps the upstream Android UI and mihomo/Clash.Meta core, then adds a `RootProxyService` and a SukiSU Ultra/Magisk companion module so the app can be started without Android `VpnService` consent dialogs.
 
-### Feature
+- Short app name: `Conceal CMFA`
+- Long app name: `Conceal Clash Meta For Android`
+- Package name: `com.github.ychaiyi.conceal.clash.meta.for.android`
+- Module name: `Conceal CMFA Root Proxy`
+- Author: `YChaiyi`
 
-Feature of [Clash.Meta](https://github.com/MetaCubeX/Clash.Meta)
+## Root Transparent Proxy
 
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-     alt="Get it on F-Droid"
-     height="80">](https://f-droid.org/packages/com.github.metacubex.clash.meta/)
+The companion module starts the app's `RootProxyService`, writes the root-mode marker in the app data directory, then applies owner-safe transparent proxy rules.
 
-### Requirement
+Runtime behavior:
 
-- Android 5.0+ (minimum)
-- Android 7.0+ (recommend)
-- `armeabi-v7a` , `arm64-v8a`, `x86` or `x86_64` Architecture
+- Injects `redir-port: 7892`, `tproxy-port: 7893`, and `dns.listen: [::]:1053` when root mode is enabled.
+- Uses TPROXY automatically when the app opens the TPROXY listener.
+- Falls back to REDIR TCP plus DNS transparent proxy when only `redir-port` is available.
+- Skips the Conceal CMFA app UID to avoid proxy loops.
 
-### Build
+Tested on Xiaomi 17 Pro with SukiSU Ultra. On that device the app exposed `7892` and `1053`, while `7893` did not listen, so the module used REDIR TCP/DNS fallback successfully.
 
-1. Update submodules
+## Install
 
-   ```bash
-   git submodule update --init --recursive
-   ```
+1. Install the matching Conceal CMFA APK.
+2. Open the app once, import/select a working profile, and let it finish profile initialization.
+3. Install `conceal-cmfa-root-proxy.zip` in SukiSU Ultra.
+4. Reboot, or use the SukiSU module action button to toggle the proxy rules.
 
-2. Install **OpenJDK 11**, **Android SDK**, **CMake** and **Golang**
+Current release artifacts:
 
-3. Create `local.properties` in project root with
+- APK: `app/build/outputs/apk/meta/debug/conceal-clash-meta-for-android-2.11.30-meta-arm64-v8a-debug.apk`
+- SukiSU module: `build/root-module/conceal-cmfa-root-proxy.zip`
 
-   ```properties
-   sdk.dir=/path/to/android-sdk
-   ```
+## Build
 
-4. (Optional) Custom app package name. Add the following configuration to `local.properties`.
+```bash
+git submodule update --init --recursive
+./gradlew :app:assembleMetaRelease
+./tools/package-root-module.sh
+```
 
-   ```properties
-   # config your ownn applicationId, or it will be 'com.github.metacubex.clash'
-   custom.application.id=com.my.compile.clash
-   # remove application id suffix, or the applicaion id will be 'com.github.metacubex.clash.alpha'
-   remove.suffix=true
+Create `local.properties` in the project root for local SDK paths and optional overrides:
 
-5. Create `signing.properties` in project root with
+```properties
+sdk.dir=/path/to/android-sdk
 
-   ```properties
-   keystore.path=/path/to/keystore/file
-   keystore.password=<key store password>
-   key.alias=<key alias>
-   key.password=<key password>
-   ```
+# Optional local build overrides.
+compile.sdk=36
+target.sdk=35
+ndk.version=26.1.10909125
+build.tools.version=36.1.0
+abi.filters=arm64-v8a
+```
 
-6. Build
+The `meta` flavor builds with the final package name `com.github.ychaiyi.conceal.clash.meta.for.android`.
 
-   ```bash
-   ./gradlew app:assembleAlphaRelease
-   ```
+## Automation
 
-### Automation
+External control activity:
 
-APP package name is `com.github.metacubex.clash.meta`
+```text
+com.github.kr328.clash.ExternalControlActivity
+```
 
-- Toggle Clash.Meta service status
-  - Send intent to activity `com.github.kr328.clash.ExternalControlActivity` with action `com.github.metacubex.clash.meta.action.TOGGLE_CLASH`
-- Start Clash.Meta service
-  - Send intent to activity `com.github.kr328.clash.ExternalControlActivity` with action `com.github.metacubex.clash.meta.action.START_CLASH`
-- Stop Clash.Meta service
-  - Send intent to activity `com.github.kr328.clash.ExternalControlActivity` with action `com.github.metacubex.clash.meta.action.STOP_CLASH`
-- Import a profile
-  - URL Scheme `clash://install-config?url=<encoded URI>` or `clashmeta://install-config?url=<encoded URI>`
+Intent actions:
 
-### Contribution and Project Maintenance
+```text
+com.github.ychaiyi.conceal.clash.meta.for.android.action.TOGGLE_CLASH
+com.github.ychaiyi.conceal.clash.meta.for.android.action.START_CLASH
+com.github.ychaiyi.conceal.clash.meta.for.android.action.STOP_CLASH
+```
 
-#### Meta Kernel
+Profile import schemes remain compatible:
 
-- CMFA uses the kernel from `android-real` branch under `MetaCubeX/Clash.Meta`, which is a merge of the main `Alpha` branch and `android-open`.
-  - If you want to contribute to the kernel, make PRs to `Alpha` branch of the Meta kernel repository.
-  - If you want to contribute Android-specific patches to the kernel, make PRs to  `android-open` branch of the Meta kernel repository.
+```text
+clash://install-config?url=<encoded URI>
+clashmeta://install-config?url=<encoded URI>
+```
 
-#### Maintenance
+## Upstream Credits
 
-- When `MetaCubeX/Clash.Meta` kernel is updated to a new version, the `Update Dependencies` actions in this repo will be triggered automatically.
-  - It will pull the new version of the meta kernel, update all the golang dependencies, and create a PR without manual intervention.
-  - If there is any compile error in PR, you need to fix it before merging. Alternatively, you may merge the PR directly.
-- Manually triggering `Build Pre-Release` actions will compile and publish a `PreRelease` version.
-- Manually triggering `Build Release` actions will compile, tag and publish a `Release` version.
-  - You must fill the blank `Release Tag` with the tag you want to release in the format of `v1.2.3`.
-  - `versionName` and `versionCode` in `build.gradle.kts` will be automatically bumped to the tag you filled above.
+This project is based on [MetaCubeX/ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid) and the [MetaCubeX/Clash.Meta](https://github.com/MetaCubeX/Clash.Meta) core.

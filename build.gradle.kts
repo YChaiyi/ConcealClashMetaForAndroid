@@ -45,9 +45,17 @@ subprojects {
     extensions.configure<BaseExtension> {
         buildFeatures.buildConfig = true
         defaultConfig {
+            val configuredAbiFilters = (queryConfigProperty("abi.filters") as? String)
+                ?.split(",")
+                ?.map { it.trim() }
+                ?.filter { it.isNotEmpty() }
+                ?.takeIf { it.isNotEmpty() }
+                ?: listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+
             if (isApp) {
                 val customApplicationId = queryConfigProperty("custom.application.id") as? String?
-                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.github.metacubex.clash"
+                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true }
+                    ?: "com.github.ychaiyi.conceal.clash.meta.for.android"
             }
 
             project.name.let { name ->
@@ -56,7 +64,9 @@ subprojects {
             }
 
             minSdk = 21
-            targetSdk = 35
+            targetSdk = (queryConfigProperty("target.sdk") as? String)
+                ?.toIntOrNull()
+                ?: 35
 
             versionName = "2.11.30"
             versionCode = 211030
@@ -65,25 +75,39 @@ subprojects {
             resValue("integer", "release_code", "$versionCode")
 
             ndk {
-                abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+                abiFilters += configuredAbiFilters
             }
 
             externalNativeBuild {
                 cmake {
-                    abiFilters("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+                    abiFilters(*configuredAbiFilters.toTypedArray())
                 }
             }
 
             if (!isApp) {
                 consumerProguardFiles("consumer-rules.pro")
             } else {
-                setProperty("archivesBaseName", "cmfa-$versionName")
+                setProperty("archivesBaseName", "conceal-clash-meta-for-android-$versionName")
             }
         }
 
-        ndkVersion = "29.0.14206865"
+        ndkVersion = (queryConfigProperty("ndk.version") as? String)
+            ?.takeIf { it.isNotBlank() }
+            ?: "29.0.14206865"
 
-        compileSdkVersion(defaultConfig.targetSdk!!)
+        val configuredCompileSdk = (queryConfigProperty("compile.sdk") as? String)
+            ?.takeIf { it.isNotBlank() }
+        if (configuredCompileSdk != null) {
+            configuredCompileSdk.toIntOrNull()
+                ?.let { compileSdkVersion(it) }
+                ?: compileSdkVersion(configuredCompileSdk)
+        } else {
+            compileSdkVersion(defaultConfig.targetSdk!!)
+        }
+
+        (queryConfigProperty("build.tools.version") as? String)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { buildToolsVersion(it) }
 
         if (isApp) {
             packagingOptions {
@@ -128,9 +152,6 @@ subprojects {
                 resValue("string", "launch_name", "@string/launch_name_meta")
                 resValue("string", "application_name", "@string/application_name_meta")
 
-                if (isApp && !removeSuffix) {
-                    applicationIdSuffix = ".meta"
-                }
             }
         }
 
